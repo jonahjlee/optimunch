@@ -13,8 +13,8 @@ class ProductQuery(BaseModel):
     locationId: Optional[str] = None
     brand: Optional[str] = None
     fulfillment: Optional[str] = None
-    start: Optional[str] = None
-    limit: Optional[str] = None
+    start: Optional[int] = None
+    limit: Optional[int] = None
 
     # Useful errors are already returned for invalid inputs...
     # @model_validator(mode="after")
@@ -32,12 +32,9 @@ def query_product(query: ProductQuery, token: str = None) -> dict:
 
     url: str = "https://api.kroger.com/v1/products?"
     for key, value in query.model_dump(exclude_none=True).items():
-        print(value)
-        value_formatted = value.replace(" ", "%20")
+        value_formatted = str(value).replace(" ", "%20")
         url += f"filter.{key}={value_formatted}&"
     url = url[:-1]
-
-    print(url)
 
     headers: dict = {
         'Accept': 'application/json',
@@ -46,17 +43,14 @@ def query_product(query: ProductQuery, token: str = None) -> dict:
 
     response: requests.Response = requests.get(url, headers=headers)
 
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {
-            'error': f"Failed to fetch products. Status code: {response.status_code}",
-            'message': response.text
-        }
+    if response.status_code != 200:
+        raise ValueError(response.json())
+
+    return response.json()
 
 if __name__ == "__main__":
 
-    query = ProductQuery(term='carrot')
+    query = ProductQuery(term='kroger', locationId='01400413')
     products = query_product(query)
 
     # Print the results
